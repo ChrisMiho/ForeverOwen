@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v6
+
+      # Exact luacheck and busted versions are pinned in the rockspec
+      - name: Install dev dependencies
+        run: luarocks install --only-deps foreverowen-dev-1.rockspec
+
+      - name: Lint
+        run: luacheck .
+
+      - name: Unit tests
+        run: busted

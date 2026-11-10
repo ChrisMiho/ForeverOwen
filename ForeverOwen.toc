@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: ForeverOwen
+## Notes: Plays Owen Wilson's "Wow" when you or your pet land a critical hit or heal.
+## Author: ChrisMiho
+## Version: @project-version@
+## SavedVariables: ForeverOwenDB
+## Category: Audio & Video
+
+src\Config.lua
+src\Crit.lua
+src\Sound.lua
+src\UI.lua
+src\Init.lua

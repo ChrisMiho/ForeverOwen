@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Keeps the GitHub Actions in .github/workflows up to date.
+  # The luacheck and busted pins in foreverowen-dev-1.rockspec are bumped by
+  # hand (Dependabot does not read rockspecs; see the note in that file).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

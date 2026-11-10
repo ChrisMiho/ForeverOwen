@@ -1,0 +1,21 @@
+package-as: ForeverOwen
+
+# No externals: the addon uses no libraries, only the WoW API.
+
+# Development files that must not ship in the addon zip
+ignore:
+  - spec
+  - scripts
+  - docs
+  - PRD.md
+  - CLAUDE.md
+  - "*.rockspec"
+  - .vscode
+  - .github
+  - .editorconfig
+  - .luacheckrc
+  - .busted
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

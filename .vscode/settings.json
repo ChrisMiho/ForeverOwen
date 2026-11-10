@@ -1,0 +1,13 @@
+{
+	"Lua.runtime.version": "Lua 5.1",
+	"Lua.workspace.ignoreDir": [".release", ".superpowers", ".luarocks", "lua_modules"],
+	"Lua.diagnostics.globals": [
+		"describe", "it", "pending", "before_each", "after_each", "setup", "teardown",
+		"assert", "spy", "stub", "mock", "LoadAddonFile",
+		"ForeverOwenDB", "SLASH_FOREVEROWEN1"
+	],
+	"files.associations": { "*.rockspec": "lua" },
+	"files.eol": "\n",
+	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true
+}

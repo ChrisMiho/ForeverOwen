@@ -1,0 +1,21 @@
+# Build output (scripts/build.sh), packager and secrets
+/.release/
+.env
+
+# Build and test leftovers
+*.zip
+luacov.*.out
+
+# Lua toolchains installed into the workspace by CI, or a project-local
+# rocks tree (luarocks --tree lua_modules)
+/.lua/
+/.luarocks/
+/lua_modules/
+
+# Local tooling state
+/.superpowers/
+.DS_Store
+Thumbs.db
+
+# Git worktrees for parallel work
+/.worktrees/

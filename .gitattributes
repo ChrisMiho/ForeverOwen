@@ -1,0 +1,14 @@
+# Normalise line endings so local and CI builds match
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Game art and sound are binary
+*.blp binary
+*.tga binary
+*.png binary
+*.ogg binary
+*.mp3 binary
+*.wav binary
