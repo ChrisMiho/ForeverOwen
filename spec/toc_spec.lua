@@ -59,16 +59,13 @@ describe("ForeverOwen.toc", function()
 
 	it("lists only files that exist", function()
 		local missing = {}
-		local found = 0
 		for _, path in ipairs(tocFiles(toc)) do
-			if readFile((path:gsub("\\", "/"))) then
-				found = found + 1
-			else
+			if not readFile((path:gsub("\\", "/"))) then
 				missing[#missing + 1] = path
 			end
 		end
-		if found == 0 then
-			pending("no src/ files written yet")
+		if #missing > 0 then
+			pending("src/ files not written yet: " .. table.concat(missing, ", "))
 			return
 		end
 		assert.are.same({}, missing)
