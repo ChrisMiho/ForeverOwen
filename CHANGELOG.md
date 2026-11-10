@@ -11,3 +11,4 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - Your critical hits and heals, and your pet's, play the "Wow" clip.
 - `/owen on` and `/owen off` turn it on and off.
 - A `loaded` message in chat when you log in.
+- `/owen` opens a small faction-themed window: a Play button to preview the clip, a volume slider, an Enabled toggle and the list of commands. Drag it by the title bar; Esc or [x] closes it.

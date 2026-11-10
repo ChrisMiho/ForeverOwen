@@ -16,6 +16,7 @@ exclude_files = {
 -- Globals this addon creates
 globals = {
 	"ForeverOwenDB", -- SavedVariables (account-wide), see ForeverOwen.toc
+	"ForeverOwenFrame", -- the window, named so UISpecialFrames can close it on Esc
 	"SlashCmdList",
 	"SLASH_FOREVEROWEN1",
 }
@@ -39,7 +40,9 @@ read_globals = {
 	"PlaySoundFile",
 	"SetCVar",
 	"StopSound",
+	"tinsert",
 	"UIParent",
+	"UISpecialFrames",
 	"UnitFactionGroup",
 	"UnitGUID",
 }
