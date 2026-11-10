@@ -51,3 +51,38 @@ function Sound.NewBorrower(api)
 
 	return borrower
 end
+
+-- Playback glue. WoW globals are looked up only when these run, never at file load.
+local borrower
+local handle
+
+local function GetBorrower()
+	if not borrower then
+		borrower = Sound.NewBorrower({
+			getCVar = GetCVar,
+			setCVar = SetCVar,
+			after = C_Timer.After,
+		})
+	end
+	return borrower
+end
+
+function Sound.Play(db)
+	GetBorrower():Begin(db, db.volume)
+	if handle then
+		StopSound(handle)
+	end
+	local _, newHandle = PlaySoundFile(Sound.CLIP_PATH, Sound.CHANNEL)
+	handle = newHandle
+	Sound.lastStart = GetTime()
+end
+
+function Sound.OnCrit(db)
+	if db.enabled and ns.Crit.ShouldPlay(GetTime(), Sound.lastStart, Sound.CLIP_SECONDS) then
+		Sound.Play(db)
+	end
+end
+
+function Sound.RestoreLeftover(db)
+	GetBorrower():Restore(db)
+end
