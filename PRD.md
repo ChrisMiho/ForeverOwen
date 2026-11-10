@@ -29,11 +29,13 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
   - crits that a shield fully absorbs
 - Offer a small window with:
   - a **Play** button to preview the clip
-  - a **volume slider**
   - an **on/off toggle**
+  - a note that the clip's volume is the game's **Dialog** volume
   - the slash commands listed underneath
-- Slash commands: `/owen` (open the window), `/owen on`, `/owen off`. Volume is set only in
-  the window.
+- Slash commands: `/owen` (open the window), `/owen on`, `/owen off`.
+- Volume: the clip plays on the game's **Dialog** channel, so the player sets its volume
+  with the game's own Dialog volume setting. The addon has no volume control of its own
+  (see §4.3 for why).
 - Theme by faction: a **blue palette for Alliance**, a **red palette for Horde**.
 - Save settings **account-wide** in `ForeverOwenDB`.
 
@@ -46,10 +48,8 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 - Other game clients (Classic Era, retail). Only Interface 16001 is supported.
 
 **Anti-goals: things that make the addon a failure even if it "works"**
-- **It permanently changes the player's sound settings.** The volume trick (§4.3) borrows a
-  game setting. It must always be put back, even after `/reload`, a logout or a disconnect.
-  - A client **crash** is best effort only: WoW doesn't write SavedVariables on a crash, and
-    probably doesn't write the changed sound settings either. This is a known, accepted gap.
+- **It changes the player's game settings.** The addon never calls `SetCVar`. Doing that in
+  combat is blocked on this client (§4.3).
 - **It machine-guns.** AoE crits that land in the same instant must not stack ten
   overlapping "Wow"s.
 - **It costs frame time in combat.** The combat-log handler runs on every combat event in
@@ -58,8 +58,8 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 
 ## 3. Users
 
-- **The player:** installs the addon, opens it with `/owen`, sets the volume once and
-  forgets about it.
+- **The player:** installs the addon, presses Play once to hear it, adjusts the game's
+  Dialog volume if needed, and forgets about it.
 - **The guild:** installs the same addon. There is no networking; everyone hears only
   their own crits.
 
@@ -113,36 +113,20 @@ missType position) so a fix touches one place.
 - The **Play** button ignores the throttle. It restarts the clip: stop the current handle,
   then play a new one.
 
-### 4.3 Volume (the Dialog channel trick)
+### 4.3 Volume (the game's Dialog volume)
 
-WoW can't set the volume of a single sound, so the addon plays the clip on the
-**Dialog** channel and borrows that channel's volume while the clip plays. The owner chose
-this approach.
+- The clip plays with `PlaySoundFile(CLIP_PATH, "Dialog")`. How loud it is depends on the
+  game's **Master** and **Dialog** volume settings (Options → Audio).
+- If the player has turned the Dialog channel off or muted the game, there is no Wow. That
+  is correct.
+- The addon has **no volume setting of its own** and never reads or writes sound settings.
 
-When the clip plays:
-1. If no borrow is active:
-   - remember the current `Sound_DialogVolume` and `Sound_EnableDialog` values;
-   - **also write them to `ForeverOwenDB.restore`**, so a `/reload` or logout mid-clip can
-     put them back on the next login.
-2. Set `Sound_DialogVolume` to the user's volume (0–1). Set `Sound_EnableDialog` to `1`.
-3. `PlaySoundFile("Interface\\AddOns\\ForeverOwen\\media\\OwenWilson.mp3", "Dialog")`.
-4. Schedule a restore with `C_Timer.After(CLIP_SECONDS + RESTORE_PAD, ...)`.
-   - **Any** play can start while a borrow is still active: the Play button, or a crit that
-     lands after the throttle window (`CLIP_SECONDS`) but before the restore fires
-     (`CLIP_SECONDS + RESTORE_PAD`). Such a play skips step 1 (no new snapshot) and bumps a
-     generation counter, so only the newest timer restores and stale timers do nothing.
-   - Getting this wrong either cuts the second clip short or snapshots the borrowed values
-     as the "originals", which breaks the first anti-goal.
-5. The restore writes the remembered values back and clears `ForeverOwenDB.restore`.
-
-- On `PLAYER_LOGIN`, if `ForeverOwenDB.restore` exists, restore those values first, then
-  clear it.
-- Side effect, accepted by the owner: NPC voice lines that play during the ~1 s window are
-  played at the addon's volume.
-- The Master volume and Master mute still apply. If the player has muted the game, there is
-  no Wow. That is correct.
-- Keep the borrow-and-restore logic **pure and testable**. The getter and setter for the
-  game settings are passed in, so busted tests can use fakes (see §5).
+**History.** v0.1.0 had a volume slider that temporarily changed `Sound_DialogVolume` with
+`SetCVar` while the clip played, then put it back. In game this raised "ForeverOwen has been
+blocked from an action only available to the Blizzard UI": `SetCVar` is blocked for addons
+in combat on this client, and nearly every crit happens in combat. The owner chose to drop
+the slider in favour of a note pointing at the Dialog volume. Pre-rendered volume copies of
+the clip were the alternative, if per-addon volume is ever wanted.
 
 ### 4.4 Enable / disable
 
@@ -177,7 +161,8 @@ A small box, about 260 × 210 px. Final layout is the builder's call; the conten
 ┌─ ForeverOwen ──────────────────── [x] ┐
 │  [ ▶ Play ]            [✓] Enabled     │
 │                                        │
-│  Volume            ───────●─── 80%     │
+│  Volume follows your game's Dialog     │
+│  volume (Options → Audio → Dialog).    │
 │                                        │
 │  /owen       open this window          │
 │  /owen on    turn it on                │
@@ -185,12 +170,10 @@ A small box, about 260 × 210 px. Final layout is the builder's call; the conten
 └────────────────────────────────────────┘
 ```
 
-- **Play:** plays the clip at the current slider volume (§4.2, §4.3).
+- **Play:** plays the clip (§4.2, §4.3).
 - **Enabled:** a checkbox bound to `enabled`.
-- **Volume:**
-  - a slider from 0 to 100 % in steps of 5, with a % label;
-  - it saves on every change;
-  - it does **not** auto-play while dragging, which would be too noisy.
+- **Volume note:** the exact text `Volume follows your game's Dialog volume (Options →
+  Audio → Dialog).`, wrapped over two lines, in the small highlight font.
 - **Commands:** a static list of the commands, in the small highlight font.
 - **The frame itself:**
   - built lazily on the first `/owen`;
@@ -203,7 +186,7 @@ A small box, about 260 × 210 px. Final layout is the builder's call; the conten
     back to Alliance;
   - start from DeathRollForever's tints: Alliance title `{0.114, 0.302, 0.690}`, Horde
     title `{0.490, 0.110, 0.110}`;
-  - tint the title bar, border, Play button and slider thumb or fill;
+  - tint the title bar, border and Play button;
   - body text stays the standard game font colours, so it stays readable.
 
 ## 5. Architecture
@@ -217,9 +200,9 @@ The modules load in this order:
 
 | File | Kind | Owns |
 |---|---|---|
-| `src/Config.lua` | pure | the `DEFAULTS` table, `Config.Load(saved)` (fills in missing keys, clamps volume, migrates by `schemaVersion`), `Config.SetVolume`, `Config.SetEnabled` |
+| `src/Config.lua` | pure | the `DEFAULTS` table, `Config.Load(saved)` (fills in missing keys, drops retired keys, migrates by `schemaVersion`), `Config.SetEnabled`, `Config.ParseCommand`, `Config.COMMANDS` |
 | `src/Crit.lua` | pure | the sub-event → crit-position table, `Crit.IsMyCrit(mineMask, band, ...)` (the CLEU tuple; `band` is `bit.band`, passed in so specs can supply one), `Crit.ShouldPlay(now, lastStart)` |
-| `src/Sound.lua` | pure core + thin glue | the borrow/restore logic with injected `getCVar`/`setCVar`/`after`/`db`; glue binds the real `GetCVar`, `SetCVar`, `C_Timer.After`, `PlaySoundFile` and `StopSound` |
+| `src/Sound.lua` | thin glue | the clip constants; `Sound.Play()` (stop the previous handle, `PlaySoundFile` on Dialog, remember the start time) and `Sound.OnCrit(db)` (enabled + throttle) |
 | `src/UI.lua` | glue | the window and its palette. Public: `UI.Toggle()`, `UI.Refresh()` |
 | `src/Init.lua` | glue | events (`ADDON_LOADED`, `PLAYER_LOGIN`, `COMBAT_LOG_EVENT_UNFILTERED`), the slash command, `ns.Print`, the version |
 
@@ -232,18 +215,19 @@ busted specs, through `LoadAddonFile` in `spec/helper.lua`.
 Defaults for `ForeverOwenDB`:
 ```lua
 DEFAULTS = {
-	schemaVersion = 1,
+	schemaVersion = 2,
 	enabled = true,
-	volume = 1.0,      -- 0..1, the value Sound_DialogVolume is set to during the clip
 	point = nil,       -- { point = ..., relativePoint = ..., x = ..., y = ... } for the window
-	restore = nil,     -- { dialogVolume = "x", enableDialog = "y" } while a borrow is active
 }
 ```
+
+Schema 2 retires the v0.1.0 keys `volume` and `restore`. `Config.Load` deletes them. No
+`restore` value ever needs applying: every `SetCVar` call the addon made in combat was
+blocked, so it never ran.
 
 Constants (in `Sound.lua`):
 - `CLIP_PATH = "Interface\\AddOns\\ForeverOwen\\media\\OwenWilson.mp3"`
 - `CLIP_SECONDS = 0.84` (32 MP3 frames at 44.1 kHz = 0.836 s; gapless length 0.805 s). Confirm the felt length in game.
-- `RESTORE_PAD = 0.25`
 - `CHANNEL = "Dialog"`
 
 ## 7. Roadmap
@@ -256,8 +240,8 @@ a table in this file.
      been checked yet.
 2. `PlaySoundFile(CLIP_PATH, "Dialog")` plays the mp3.
    - If mp3 doesn't play, convert the clip to `.ogg` and update `CLIP_PATH`.
-3. Setting `Sound_DialogVolume` **before** `PlaySoundFile` changes how loud the clip is.
-   Restoring it ~1 s later doesn't cut off the end of the clip.
+3. ~~Setting `Sound_DialogVolume` changes how loud the clip is.~~ **Answered: `SetCVar` is
+   blocked for addons in combat** (the in-game popup on 2026-11-10). Dropped (§4.3).
 4. The `critical` positions in §4.1 are correct. Test each kind of crit by printing the
    tuple.
 5. `COMBATLOG_OBJECT_AFFILIATION_MINE` is set in `sourceFlags` for the player, the pet, a
