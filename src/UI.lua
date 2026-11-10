@@ -39,7 +39,7 @@ local TEXT = {
 	title = "ForeverOwen",
 	play = "Play",
 	enabled = "Enabled",
-	volumeNote = "Volume follows your game's Dialog volume (Options → Audio → Dialog).",
+	volumeNote = "Volume follows your game's Dialog volume (Options > Audio > Dialog).",
 }
 
 local BACKDROP = {

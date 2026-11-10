@@ -1,5 +1,7 @@
 # ForeverOwen v0.1.0 Implementation Plan
 
+> **Superseded in part:** the volume slider and Dialog-volume borrowing (Tasks 4–6) were removed after in-game testing. See PRD §4.3 (schema 2). This plan is kept as history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship v0.1.0 of ForeverOwen: Owen Wilson says "Wow" whenever the player, or

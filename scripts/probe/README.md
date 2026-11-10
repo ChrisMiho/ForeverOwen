@@ -28,7 +28,7 @@ flags in hex, then fields `[12]` to `[21]`. Find which index holds the crit bool
 |---|---|---|---|
 | 1 | Loads with Interface 16001, not out of date | | |
 | 2 | `PlaySoundFile(..., "Dialog")` plays the mp3 | | |
-| 3 | `Sound_DialogVolume` set before play changes loudness; restore at 1.09 s does not cut the clip | | |
+| 3 | `Sound_DialogVolume` set before play changes loudness; restore at 1.09 s does not cut the clip | Answered: SetCVar is blocked for addons in combat (popup on 2026-11-10). Do not run `vol` in combat. | |
 | 4 | `critical` positions correct: SWING_DAMAGE (18) | | |
 | 4 | RANGE/SPELL/SPELL_PERIODIC_DAMAGE (21) | | |
 | 4 | DAMAGE_SHIELD (21) | | |

@@ -116,7 +116,7 @@ missType position) so a fix touches one place.
 ### 4.3 Volume (the game's Dialog volume)
 
 - The clip plays with `PlaySoundFile(CLIP_PATH, "Dialog")`. How loud it is depends on the
-  game's **Master** and **Dialog** volume settings (Options → Audio).
+  game's **Master** and **Dialog** volume settings (Options > Audio).
 - If the player has turned the Dialog channel off or muted the game, there is no Wow. That
   is correct.
 - The addon has **no volume setting of its own** and never reads or writes sound settings.
@@ -162,7 +162,7 @@ A small box, about 260 × 210 px. Final layout is the builder's call; the conten
 │  [ ▶ Play ]            [✓] Enabled     │
 │                                        │
 │  Volume follows your game's Dialog     │
-│  volume (Options → Audio → Dialog).    │
+│  volume (Options > Audio > Dialog).    │
 │                                        │
 │  /owen       open this window          │
 │  /owen on    turn it on                │
@@ -172,8 +172,8 @@ A small box, about 260 × 210 px. Final layout is the builder's call; the conten
 
 - **Play:** plays the clip (§4.2, §4.3).
 - **Enabled:** a checkbox bound to `enabled`.
-- **Volume note:** the exact text `Volume follows your game's Dialog volume (Options →
-  Audio → Dialog).`, wrapped over two lines, in the small highlight font.
+- **Volume note:** the exact text `Volume follows your game's Dialog volume (Options >
+  Audio > Dialog).`, wrapped over two lines, in the small highlight font.
 - **Commands:** a static list of the commands, in the small highlight font.
 - **The frame itself:**
   - built lazily on the first `/owen`;
