@@ -12,6 +12,9 @@ Config.COMMANDS = {
 }
 
 function Config.ClampVolume(v)
+	if v ~= v then
+		return Config.DEFAULTS.volume
+	end
 	if v < 0 then
 		v = 0
 	elseif v > 1 then

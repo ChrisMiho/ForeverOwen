@@ -14,10 +14,15 @@ describe("Config", function()
 	end)
 
 	it("keeps valid saved values", function()
-		local db = Config.Load({ enabled = false, volume = 0.35, point = { "CENTER", "CENTER", 10, 20 } })
+		local point = { point = "CENTER", relativePoint = "CENTER", x = 10, y = 20 }
+		local db = Config.Load({ enabled = false, volume = 0.35, point = point })
 		assert.is_false(db.enabled)
 		near(db.volume, 0.35)
-		assert.are.same({ "CENTER", "CENTER", 10, 20 }, db.point)
+		assert.are.same(point, db.point)
+	end)
+
+	it("treats NaN volume as the default", function()
+		near(Config.Load({ volume = 0 / 0 }).volume, 1.0)
 	end)
 
 	it("clamps and rounds volume", function()

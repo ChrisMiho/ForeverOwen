@@ -46,6 +46,15 @@ describe("Sound borrow core", function()
 		assert.is_nil(db.restore)
 	end)
 
+	it("a new borrow after a completed one takes a fresh snapshot", function()
+		local db = {}
+		borrower:Begin(db, 0.4)
+		timers[1][2]()
+		cvars.Sound_DialogVolume = "0.3"
+		borrower:Begin(db, 0.8)
+		assert.equals("0.3", db.restore.dialogVolume)
+	end)
+
 	it("a second Begin during a borrow keeps the original snapshot", function()
 		local db = {}
 		borrower:Begin(db, 0.4)

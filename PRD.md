@@ -235,7 +235,7 @@ DEFAULTS = {
 	schemaVersion = 1,
 	enabled = true,
 	volume = 1.0,      -- 0..1, the value Sound_DialogVolume is set to during the clip
-	point = nil,       -- { point, relativePoint, x, y } for the window
+	point = nil,       -- { point = ..., relativePoint = ..., x = ..., y = ... } for the window
 	restore = nil,     -- { dialogVolume = "x", enableDialog = "y" } while a borrow is active
 }
 ```

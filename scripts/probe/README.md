@@ -43,3 +43,5 @@ flags in hex, then fields `[12]` to `[21]`. Find which index holds the crit bool
 | API | `BackdropTemplate` frame creates | | |
 | API | `UICheckButtonTemplate` / `UIPanelButtonTemplate` create | | |
 | API | `UISpecialFrames` is a table | | |
+| API | `type(COMBATLOG_OBJECT_AFFILIATION_MINE)` is a number | | |
+| API | `CreateFrame("Slider").SetObeyStepOnDrag` exists | | |

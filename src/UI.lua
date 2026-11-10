@@ -57,6 +57,7 @@ local BACKDROP = {
 }
 
 local window -- the built parts; nil until the first Toggle
+local attempted = false -- set before the first build, so a failed build is never repeated
 local refreshing = false -- true while Refresh sets the slider, so it doesn't write back
 
 local function Tint()
@@ -97,6 +98,7 @@ local function BuildTitleBar(frame, tint)
 	end)
 	bar:SetScript("OnDragStop", function()
 		frame:StopMovingOrSizing()
+		frame:SetUserPlaced(false)
 		SavePosition(frame)
 	end)
 
@@ -111,6 +113,7 @@ local function BuildTitleBar(frame, tint)
 	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 	close:SetSize(LAYOUT.titleHeight, LAYOUT.titleHeight)
 	close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+	close:SetFrameLevel(bar:GetFrameLevel() + 1)
 end
 
 local function BuildPlay(frame, tint)
@@ -138,6 +141,7 @@ local function BuildEnabled(frame, play)
 	local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	label:SetPoint("LEFT", check, "RIGHT", 2, 0)
 	label:SetText(TEXT.enabled)
+	check:SetHitRectInsets(0, -(label:GetStringWidth() + 4), 0, 0)
 	check:SetScript("OnClick", function(self)
 		ns.Config.SetEnabled(ns.db, self:GetChecked() and true or false)
 	end)
@@ -171,7 +175,9 @@ local function BuildVolume(frame, play, tint)
 
 	slider:SetMinMaxValues(0, 100)
 	slider:SetValueStep(5)
-	slider:SetObeyStepOnDrag(true)
+	if slider.SetObeyStepOnDrag then
+		slider:SetObeyStepOnDrag(true)
+	end
 	slider:SetScript("OnValueChanged", function(_, v)
 		percent:SetText(PercentText(v))
 		if not refreshing then
@@ -236,8 +242,12 @@ function UI.Toggle()
 	if not ns.db then
 		return
 	end
-	if not window then
+	if not attempted then
+		attempted = true
 		Build()
+	end
+	if not window then
+		return
 	end
 	if window.frame:IsShown() then
 		window.frame:Hide()

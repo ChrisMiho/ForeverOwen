@@ -74,10 +74,18 @@ end
 
 local function probeApi()
 	out("type(C_AddOns)=" .. type(C_AddOns))
-	for _, template in ipairs({ "BackdropTemplate", "UICheckButtonTemplate", "UIPanelButtonTemplate" }) do
-		local ok, res = pcall(CreateFrame, "Frame", nil, UIParent, template)
-		out(template .. ": ok=" .. tostring(ok) .. " result=" .. type(res))
+	local templates = {
+		{ "Frame", "BackdropTemplate" },
+		{ "CheckButton", "UICheckButtonTemplate" },
+		{ "Button", "UIPanelButtonTemplate" },
+	}
+	for _, t in ipairs(templates) do
+		local ok, res = pcall(CreateFrame, t[1], nil, UIParent, t[2])
+		out(t[2] .. ": ok=" .. tostring(ok) .. " result=" .. type(res))
 	end
+	out("type(COMBATLOG_OBJECT_AFFILIATION_MINE)=" .. type(COMBATLOG_OBJECT_AFFILIATION_MINE))
+	local okSlider, slider = pcall(CreateFrame, "Slider")
+	out("Slider.SetObeyStepOnDrag exists=" .. tostring(okSlider and slider.SetObeyStepOnDrag ~= nil))
 	out("type(UISpecialFrames)=" .. type(UISpecialFrames))
 end
 

@@ -1,10 +1,10 @@
 local addonName, ns = ...
 
-local UNPACKAGED_VERSION = "@project-version@"
+local MINE = COMBATLOG_OBJECT_AFFILIATION_MINE or 0x1
 
 local function GetVersion()
 	local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
-	if not version or version:sub(1, 1) == "@" or version == UNPACKAGED_VERSION then
+	if not version or version:sub(1, 1) == "@" then
 		return "dev"
 	end
 	return version
@@ -63,7 +63,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 		if not ns.db then
 			return
 		end
-		if ns.Crit.IsMyCrit(COMBATLOG_OBJECT_AFFILIATION_MINE, bit.band, CombatLogGetCurrentEventInfo()) then
+		if ns.Crit.IsMyCrit(MINE, bit.band, CombatLogGetCurrentEventInfo()) then
 			ns.Sound.OnCrit(ns.db)
 		end
 	end
