@@ -10,7 +10,7 @@ design.
 
 | Command | What it does |
 |---------|--------------|
-| `/owen` | Open the ForeverOwen window (Play button, volume slider, on/off toggle) |
+| `/owen` | Open the ForeverOwen window (Play button, on/off toggle, volume note) |
 | `/owen on` | Turn the crit sound on |
 | `/owen off` | Turn the crit sound off |
 

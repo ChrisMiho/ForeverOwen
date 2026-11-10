@@ -26,7 +26,6 @@ globals = {
 read_globals = {
 	"bit",
 	"C_AddOns",
-	"C_Timer",
 	"COMBATLOG_OBJECT_AFFILIATION_MINE",
 	"COMBATLOG_OBJECT_TYPE_PET",
 	"CombatLogGetCurrentEventInfo",
@@ -35,10 +34,8 @@ read_globals = {
 	"GameFontHighlightSmall",
 	"GameFontNormal",
 	"GameTooltip",
-	"GetCVar",
 	"GetTime",
 	"PlaySoundFile",
-	"SetCVar",
 	"StopSound",
 	"tinsert",
 	"UIParent",

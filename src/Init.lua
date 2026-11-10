@@ -57,7 +57,6 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 		if not ns.db then
 			return
 		end
-		ns.Sound.RestoreLeftover(ns.db)
 		ns.Print(ns.version .. " loaded. Type /owen.")
 	elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		if not ns.db then

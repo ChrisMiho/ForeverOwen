@@ -14,31 +14,23 @@ local PALETTE = {
 		title = { 0.114, 0.302, 0.690 },
 		border = { 0.208, 0.408, 0.808 },
 		button = { 0.400, 0.580, 1.000 },
-		accent = { 0.380, 0.620, 1.000 },
 	},
 	Horde = {
 		title = { 0.490, 0.110, 0.110 },
 		border = { 0.651, 0.200, 0.200 },
 		button = { 1.000, 0.450, 0.450 },
-		accent = { 0.900, 0.350, 0.300 },
 	},
 }
 local WINDOW_BG = { 0.06, 0.06, 0.08, 0.92 }
-local TRACK = { 0.35, 0.35, 0.38 }
 
 local LAYOUT = {
 	width = 260,
-	height = 210,
+	height = 200,
 	titleHeight = 26,
 	padding = 12,
 	buttonWidth = 80,
 	buttonHeight = 22,
 	checkGap = 40, -- from the Play button to the Enabled checkbox
-	sliderOffset = 60, -- x of the slider, from the left of the Volume label
-	sliderWidth = 120,
-	sliderHeight = 16,
-	thumbWidth = 8,
-	trackHeight = 4,
 	commandColumn = 80, -- x of the description column, from the left padding
 	commandRow = 16,
 }
@@ -47,7 +39,7 @@ local TEXT = {
 	title = "ForeverOwen",
 	play = "Play",
 	enabled = "Enabled",
-	volume = "Volume",
+	volumeNote = "Volume follows your game's Dialog volume (Options → Audio → Dialog).",
 }
 
 local BACKDROP = {
@@ -58,14 +50,9 @@ local BACKDROP = {
 
 local window -- the built parts; nil until the first Toggle
 local attempted = false -- set before the first build, so a failed build is never repeated
-local refreshing = false -- true while Refresh sets the slider, so it doesn't write back
 
 local function Tint()
 	return PALETTE[UnitFactionGroup("player")] or PALETTE.Alliance
-end
-
-local function PercentText(v)
-	return math.floor(v + 0.5) .. "%"
 end
 
 local function SavePosition(frame)
@@ -129,7 +116,7 @@ local function BuildPlay(frame, tint)
 		end
 	end
 	play:SetScript("OnClick", function()
-		ns.Sound.Play(ns.db)
+		ns.Sound.Play()
 	end)
 	return play
 end
@@ -148,50 +135,20 @@ local function BuildEnabled(frame, play)
 	return check
 end
 
-local function BuildVolume(frame, play, tint)
-	local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	label:SetPoint("TOPLEFT", play, "BOTTOMLEFT", 0, -LAYOUT.padding - 4)
-	label:SetText(TEXT.volume)
-
-	local slider = CreateFrame("Slider", nil, frame)
-	slider:SetOrientation("HORIZONTAL")
-	slider:SetSize(LAYOUT.sliderWidth, LAYOUT.sliderHeight)
-	slider:SetPoint("LEFT", label, "LEFT", LAYOUT.sliderOffset, 0)
-	slider:EnableMouse(true)
-
-	local percent = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	percent:SetPoint("LEFT", slider, "RIGHT", 8, 0)
-
-	local track = slider:CreateTexture(nil, "BACKGROUND")
-	track:SetColorTexture(unpack(TRACK))
-	track:SetHeight(LAYOUT.trackHeight)
-	track:SetPoint("LEFT", slider, "LEFT", 0, 0)
-	track:SetPoint("RIGHT", slider, "RIGHT", 0, 0)
-
-	local thumb = slider:CreateTexture(nil, "OVERLAY")
-	thumb:SetColorTexture(unpack(tint.accent))
-	thumb:SetSize(LAYOUT.thumbWidth, LAYOUT.sliderHeight)
-	slider:SetThumbTexture(thumb)
-
-	slider:SetMinMaxValues(0, 100)
-	slider:SetValueStep(5)
-	if slider.SetObeyStepOnDrag then
-		slider:SetObeyStepOnDrag(true)
-	end
-	slider:SetScript("OnValueChanged", function(_, v)
-		percent:SetText(PercentText(v))
-		if not refreshing then
-			ns.Config.SetVolume(ns.db, v / 100) -- saves only; dragging never plays the clip
-		end
-	end)
-	return slider, percent, label
+local function BuildVolumeNote(frame, play)
+	local note = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	note:SetPoint("TOPLEFT", play, "BOTTOMLEFT", 0, -LAYOUT.padding)
+	note:SetWidth(LAYOUT.width - 2 * LAYOUT.padding)
+	note:SetJustifyH("LEFT")
+	note:SetText(TEXT.volumeNote)
+	return note
 end
 
 local function BuildCommands(frame, below)
 	local top = below
 	for i, entry in ipairs(ns.Config.COMMANDS) do
 		local cmd = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		cmd:SetPoint("TOPLEFT", top, "BOTTOMLEFT", 0, i == 1 and -LAYOUT.padding - 6 or -4)
+		cmd:SetPoint("TOPLEFT", top, "BOTTOMLEFT", 0, i == 1 and -LAYOUT.padding or -4)
 		cmd:SetJustifyH("LEFT")
 		cmd:SetText(entry[1])
 		local desc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -220,21 +177,16 @@ local function Build()
 	BuildTitleBar(frame, tint)
 	local play = BuildPlay(frame, tint)
 	local check = BuildEnabled(frame, play)
-	local slider, percent, volumeLabel = BuildVolume(frame, play, tint)
-	BuildCommands(frame, volumeLabel)
+	local note = BuildVolumeNote(frame, play)
+	BuildCommands(frame, note)
 
-	window = { frame = frame, check = check, slider = slider, percent = percent }
+	window = { frame = frame, check = check }
 end
 
 function UI.Refresh()
 	if not window or not ns.db then
 		return
 	end
-	local value = ns.db.volume * 100
-	refreshing = true
-	window.slider:SetValue(value)
-	refreshing = false
-	window.percent:SetText(PercentText(value))
 	window.check:SetChecked(ns.db.enabled and true or false)
 end
 

@@ -2,7 +2,7 @@
 
 World of Warcraft: Forever addon (Lua 5.1, Interface 16001) that plays Owen
 Wilson's "Wow" when the player or their pet crits (melee, ranged, spell or
-heal). It has a small window with a Play button, a volume slider and an on/off
+heal). It has a small window with a Play button, an on/off
 toggle, and the slash commands `/owen`, `/owen on` and `/owen off`.
 
 ## Spec
@@ -47,15 +47,15 @@ from `main` after merging.
   Share code through `ns`, never through new globals. The only globals are
   `ForeverOwenDB` (SavedVariables, account-wide) and the slash command.
 - **Keep pure logic separate from game code.** Deciding whether a combat log
-  event is a crit by the player or their pet, settings defaults and volume maths
+  event is a crit by the player or their pet, settings defaults
   go in modules that call no WoW API and get busted tests. Code that touches
-  frames, events, CVars or sounds stays in thin glue files (like `src/Init.lua`).
+  frames, events or sounds stays in thin glue files (like `src/Init.lua`).
 - **Test pure modules through `LoadAddonFile`** (from `spec/helper.lua`), which
   loads a file the way the game does: `LoadAddonFile("src/Crit.lua").Crit`.
 - **Declare every WoW API you use** in `read_globals` in `.luacheckrc`, and every
   global you create in `globals`. That way lint catches typos in API names.
-- **Volume** works by setting the `Sound_DialogVolume` CVar, playing the clip on
-  the `"Dialog"` channel, and restoring the player's own value afterwards.
+- **Volume:** the clip plays on the `"Dialog"` channel, so the game's Dialog volume
+  controls it. Never call `SetCVar`: this client blocks it for addons in combat.
 - Tabs for Lua indentation; see `.editorconfig`.
 
 ## Dependencies
@@ -68,7 +68,7 @@ from `main` after merging.
 ## Things only a human can check
 
 Anything that needs the game client: how the window looks, the faction colours,
-whether a crit plays the sound, volume and the CVar restore, slash commands.
+whether a crit plays the sound, slash commands.
 When a task depends on one of these, finish the parts you can test, then list
 exactly what the user should try in game and what they should expect to see.
 
