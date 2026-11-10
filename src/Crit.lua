@@ -3,43 +3,27 @@ local _, ns = ...
 local Crit = {}
 ns.Crit = Crit
 
-local DAMAGE = { crit = 21 }
-local HEAL = { crit = 18 }
-local MISSED = { crit = 18, miss = 15 }
-
-Crit.EVENTS = {
-	SWING_DAMAGE = { crit = 18 },
-	RANGE_DAMAGE = DAMAGE,
-	SPELL_DAMAGE = DAMAGE,
-	SPELL_PERIODIC_DAMAGE = DAMAGE,
-	DAMAGE_SHIELD = DAMAGE,
-	SPELL_HEAL = HEAL,
-	SPELL_PERIODIC_HEAL = HEAL,
-	SWING_MISSED = { crit = 15, miss = 12 },
-	RANGE_MISSED = MISSED,
-	SPELL_MISSED = MISSED,
-	SPELL_PERIODIC_MISSED = MISSED,
-	DAMAGE_SHIELD_MISSED = MISSED,
-}
-
-local EVENTS = Crit.EVENTS
-
--- Runs on every combat-log event: no allocations here.
-function Crit.IsMyCrit(mineMask, band, ...)
-	local e = EVENTS[(select(2, ...))]
-	if not e then
+-- This client blocks addons from the combat log (PRD 4.1), so crits come from
+-- UNIT_COMBAT: (unit, event, flag, amount, school). It says what a unit took, not
+-- who dealt it.
+--
+-- canRead(value) is false for a value the game hides from addons ("secret");
+-- comparing one would throw, so every field is checked before it is compared.
+-- isHostile(): whether the target is something the player can attack. Called only
+-- for a crit on the target, so ordinary hits stay cheap.
+function Crit.IsCritReport(canRead, unit, event, flag, isHostile)
+	if not (canRead(flag) and flag == "CRITICAL") then
 		return false
 	end
-	if band((select(6, ...)) or 0, mineMask) == 0 then
+	if not canRead(event) then
 		return false
 	end
-	if not (select(e.crit, ...)) then
-		return false
+	if unit == "target" then
+		return event == "WOUND" and isHostile() == true
+	elseif unit == "player" then
+		return event == "HEAL"
 	end
-	if e.miss and (select(e.miss, ...)) ~= "ABSORB" then
-		return false
-	end
-	return true
+	return false
 end
 
 -- The epsilon absorbs float error (10.84 - 10 < 0.84 in doubles).

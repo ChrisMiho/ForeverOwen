@@ -1,8 +1,8 @@
 # ForeverOwen
 
 World of Warcraft: Forever addon (Lua 5.1, Interface 16001) that plays Owen
-Wilson's "Wow" when the player or their pet crits (melee, ranged, spell or
-heal). It has a small window with a Play button, an on/off
+Wilson's "Wow" when the player's hostile target takes a crit, or the player
+receives a crit heal (the combat log is blocked on this client; see PRD 4.1). It has a small window with a Play button, an on/off
 toggle, and the slash commands `/owen`, `/owen on` and `/owen off`.
 
 ## Spec
@@ -46,8 +46,8 @@ from `main` after merging.
 - **Every file starts with `local addonName, ns = ...`** (or `local _, ns = ...`).
   Share code through `ns`, never through new globals. The only globals are
   `ForeverOwenDB` (SavedVariables, account-wide) and the slash command.
-- **Keep pure logic separate from game code.** Deciding whether a combat log
-  event is a crit by the player or their pet, settings defaults
+- **Keep pure logic separate from game code.** Deciding whether a `UNIT_COMBAT`
+  report is a crit that counts, settings defaults
   go in modules that call no WoW API and get busted tests. Code that touches
   frames, events or sounds stays in thin glue files (like `src/Init.lua`).
 - **Test pure modules through `LoadAddonFile`** (from `spec/helper.lua`), which

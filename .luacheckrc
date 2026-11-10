@@ -24,24 +24,22 @@ globals = {
 -- WoW API this addon reads. Add each new API here as it is used,
 -- so a typo in an API name fails lint instead of failing in game.
 read_globals = {
-	"bit",
 	"C_AddOns",
-	"COMBATLOG_OBJECT_AFFILIATION_MINE",
-	"COMBATLOG_OBJECT_TYPE_PET",
-	"CombatLogGetCurrentEventInfo",
+	"canaccessvalue",
 	"CreateFrame",
 	"GameFontHighlight",
 	"GameFontHighlightSmall",
 	"GameFontNormal",
 	"GameTooltip",
 	"GetTime",
+	"issecretvalue",
 	"PlaySoundFile",
 	"StopSound",
 	"tinsert",
 	"UIParent",
 	"UISpecialFrames",
+	"UnitCanAttack",
 	"UnitFactionGroup",
-	"UnitGUID",
 }
 
 files["spec/"] = {

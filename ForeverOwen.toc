@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverOwen
-## Notes: Plays Owen Wilson's "Wow" when you or your pet land a critical hit or heal.
+## Notes: Plays Owen Wilson's "Wow" when your target takes a critical hit or you get a critical heal.
 ## Author: ChrisMiho
 ## Version: @project-version@
 ## SavedVariables: ForeverOwenDB

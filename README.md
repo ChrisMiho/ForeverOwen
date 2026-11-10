@@ -1,9 +1,9 @@
 # ForeverOwen
 
 A World of Warcraft: Forever addon that plays Owen Wilson's "Wow" every time
-you or your pet land a critical hit: melee, ranged, spell or heal.
+your target takes a critical hit (melee, ranged, wand, spell or your pet's) or you receive a critical heal.
 
-Status: in development, not playable yet. See [PRD.md](PRD.md) for the full
+Status: playable on WoW Forever (client 1.60.1). See [PRD.md](PRD.md) for the full
 design.
 
 ## Commands

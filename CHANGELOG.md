@@ -6,15 +6,13 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-10
+
+First release, for WoW Forever (client 1.60.1, Interface 16001).
+
 ### Added
-- Project scaffold: `.toc`, packaging, lint and test setup, CI and release workflows, and the Owen Wilson "Wow" clip in `media/`.
-- Your critical hits and heals, and your pet's, play the "Wow" clip.
-- `/owen on` and `/owen off` turn it on and off.
-- A `loaded` message in chat when you log in.
-- `/owen` opens a small faction-themed window: a Play button to preview the clip, an Enabled toggle, a note about the Dialog volume and the list of commands. Drag it by the title bar; Esc or [x] closes it.
-
-### Changed
-- The volume slider is gone; the clip follows the game's Dialog volume, and the window says so.
-
-### Fixed
-- Crits in combat no longer trigger "blocked from an action": the addon no longer changes sound settings.
+- Owen Wilson says "Wow" when your hostile target takes a critical hit (melee, ranged, wand, spell, or your pet's) and when you receive a critical heal. This client blocks addons from the combat log, so in a group other players' crits on your target play it too.
+- No more than one "Wow" at a time: crits during the clip are skipped.
+- `/owen` opens a small faction-themed window (blue for Alliance, red for Horde): a Play button to preview the clip, an Enabled toggle, a note about the volume and the list of commands. Drag it by the title bar; Esc or [x] closes it.
+- `/owen on` and `/owen off` turn it on and off. Settings are saved per account.
+- The clip plays on the game's Dialog channel, so Options > Audio > Dialog sets its volume. The addon never changes your sound settings.

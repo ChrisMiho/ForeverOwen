@@ -7,8 +7,8 @@
 ## 1. What it is
 
 A World of Warcraft addon for **WoW Forever** (`_forever_` client, `## Interface: 16001`,
-Lua 5.1, modern retail-style API). Every time the player critically hits, Owen Wilson
-says "Wow".
+Lua 5.1, modern retail-style API). Every time the player's target takes a critical hit,
+Owen Wilson says "Wow".
 
 It brings back an addon the owner (ChrisMiho) and their guild used in Classic in 2019–2020.
 It was simple and funny, and the whole guild enjoyed it. That is the bar: **simple, funny,
@@ -19,14 +19,15 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 ## 2. Goals, non-goals, anti-goals
 
 **Goals**
-- Play the clip when **the player, or anything the player controls** (pet, guardians,
-  totems, temporary summons), lands a critical:
-  - melee and ranged auto-attacks
-  - physical abilities
-  - damaging spells, including damage over time
-  - heals, including heal over time
-  - thorns and reflect-style damage (`DAMAGE_SHIELD`)
-  - crits that a shield fully absorbs
+- Play the clip when:
+  - the player's **current target**, if it is something the player can attack, takes a
+    critical hit: melee, ranged, wand, spells, damage over time, the pet's hits;
+  - the **player receives** a critical heal.
+
+  This client blocks addons from the combat log, so the addon cannot tell who landed a
+  hit (§4.1). Solo, that is the player and their pet. In a group, other players' crits
+  on the same target, and their crit heals on the player, play it too. The owner chose
+  this over guessing who hit (2026-11-10).
 - Offer a small window with:
   - a **Play** button to preview the clip
   - an **on/off toggle**
@@ -40,7 +41,9 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 - Save settings **account-wide** in `ForeverOwenDB`.
 
 **Non-goals (for v1)**
-- Crits by other players (party, raid, guild).
+- Telling the player's crits apart from other players' crits on the same target.
+- Crits on enemies other than the current target, the player's crit heals on others,
+  crits a shield fully absorbs, and thorns crits.
 - Choosing which kinds of crit trigger it (melee only, heals only, and so on). It is all
   or nothing.
 - Other sound clips, a minimap button, chat announcements, guild sync.
@@ -52,8 +55,8 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
   combat is blocked on this client (§4.3).
 - **It machine-guns.** AoE crits that land in the same instant must not stack ten
   overlapping "Wow"s.
-- **It costs frame time in combat.** The combat-log handler runs on every combat event in
-  range, so it must return early and cheaply.
+- **It costs frame time in combat.** The `UNIT_COMBAT` handler runs on every hit the target
+  or the player takes, so it must return early and cheaply.
 - **It throws Lua errors.** One error popup in a raid and the guild turns the addon off.
 
 ## 3. Users
@@ -61,50 +64,31 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 - **The player:** installs the addon, presses Play once to hear it, adjusts the game's
   Dialog volume if needed, and forgets about it.
 - **The guild:** installs the same addon. There is no networking; everyone hears only
-  their own crits.
+  crits on their own target.
 
 ## 4. Behaviour
 
 ### 4.1 Crit detection
 
-- Listen to `COMBAT_LOG_EVENT_UNFILTERED` and read the event with
-  `CombatLogGetCurrentEventInfo()`.
-- An event counts if all of these hold:
-  1. **The source is the player or something the player owns.** The owner decided: **every**
-     unit the player controls counts — the controlled pet, guardians, **totems** (important
-     for shamans) and temporary summons.
-     - Check `sourceFlags` with `bit.band(sourceFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0`.
-       That flag is set on the player and on everything the player owns, and it doesn't need
-       GUID tracking or `SPELL_SUMMON` bookkeeping.
-     - Fallback if Phase 0 shows the flag is missing for some summon type: also accept
-       `sourceGUID == UnitGUID("player")` or `UnitGUID("pet")`, and track GUIDs from the
-       player's `SPELL_SUMMON` events (cleared on `PLAYER_ENTERING_WORLD`).
-  2. The sub-event is in the table below.
-  3. Its `critical` field is truthy.
-  4. For `*_MISSED` sub-events only: `missType == "ABSORB"`. The owner decided that a crit
-     **fully absorbed** by a shield still counts. Other miss types (dodge, parry, resist and
-     so on) never carry a crit.
+**This client blocks the combat log for addons.** `CombatLogGetCurrentEventInfo` does not
+exist, and registering `COMBAT_LOG_EVENT_UNFILTERED` is a blocked action that raises "has
+been blocked from an action only available to the Blizzard UI" (confirmed in game on
+2026-11-10, client 1.60.1.70888).
 
-| Sub-event | `critical` position (1-based, in the full returned tuple) | Notes |
-|---|---|---|
-| `SWING_DAMAGE` | 18 | |
-| `RANGE_DAMAGE`, `SPELL_DAMAGE`, `SPELL_PERIODIC_DAMAGE` | 21 | |
-| `DAMAGE_SHIELD` (thorns, reflect-style damage) | 21 | Owner decided this counts |
-| `SPELL_HEAL`, `SPELL_PERIODIC_HEAL` | 18 | |
-| `SWING_MISSED` | 15 | `missType` at 12 must be `"ABSORB"` |
-| `RANGE_MISSED`, `SPELL_MISSED`, `SPELL_PERIODIC_MISSED`, `DAMAGE_SHIELD_MISSED` | 18 | `missType` at 15 must be `"ABSORB"` |
+So crits come from `UNIT_COMBAT`, registered with
+`RegisterUnitEvent("UNIT_COMBAT", "target", "player")`. Its arguments are
+`unit, event, flag, amount, school`. It reports what a unit **took**, not who dealt it.
 
-These positions follow the retail combat-log layout: 11 base fields, then a 3-field spell
-prefix for SPELL/RANGE/DAMAGE_SHIELD events, then the suffix. The MISSED suffix is
-`missType, isOffHand, amountMissed, critical`. **They must be confirmed in game first**
-(§7, Phase 0). Put them in one table in `Crit.lua` (critical position plus an optional
-missType position) so a fix touches one place.
+A report counts if `flag == "CRITICAL"` and either:
+- `unit == "target"`, `event == "WOUND"`, and `UnitCanAttack("player", "target")` is true; or
+- `unit == "player"` and `event == "HEAL"`.
 
-- Order the checks so the cheapest rejection runs first:
-  1. the sub-event lookup
-  2. the source flags (one `bit.band`)
-  3. the critical flag
-  4. the missType, for MISSED events only
+The game may hide values from addons ("secret values"); comparing one throws. Every field
+is checked with `canaccessvalue` (or `issecretvalue`, whichever exists) before it is
+compared, and a hidden value means "not a crit". The check lives in
+`Crit.IsCritReport(canRead, unit, event, flag, isHostile)`. The read check and the
+hostile-target check are passed in as functions so specs can supply them; `isHostile` is
+only called for a crit on the target, so ordinary hits cost one comparison.
 
 ### 4.2 Throttle
 
@@ -121,7 +105,7 @@ missType position) so a fix touches one place.
   is correct.
 - The addon has **no volume setting of its own** and never reads or writes sound settings.
 
-**History.** v0.1.0 had a volume slider that temporarily changed `Sound_DialogVolume` with
+**History.** An unreleased build had a volume slider that temporarily changed `Sound_DialogVolume` with
 `SetCVar` while the clip played, then put it back. In game this raised "ForeverOwen has been
 blocked from an action only available to the Blizzard UI": `SetCVar` is blocked for addons
 in combat on this client, and nearly every crit happens in combat. The owner chose to drop
@@ -143,8 +127,8 @@ ignores spaces at either end.
 | Input | Effect | Chat output (exact) |
 |---|---|---|
 | `/owen` | Toggle the window (open it if closed, close it if open) | none |
-| `/owen on` | `enabled = true` | `ForeverOwen: on. Wow.` |
-| `/owen off` | `enabled = false` | `ForeverOwen: off.` |
+| `/owen on` | `enabled = true` | `ForeverOwen on. Wow.` |
+| `/owen off` | `enabled = false` | `ForeverOwen off.` |
 | `/owen help` or anything else | Print the help | `ForeverOwen commands:` then one line per command, the same text as the window's command list |
 
 - Chat lines use the addon-name prefix `|cffffd100ForeverOwen|r`, as in DeathRollForever's
@@ -155,7 +139,7 @@ ignores spaces at either end.
 
 ### 4.6 The window
 
-A small box, about 260 × 210 px. Final layout is the builder's call; the contents are not.
+A small box, about 260 × 200 px. Final layout is the builder's call; the contents are not.
 
 ```
 ┌─ ForeverOwen ──────────────────── [x] ┐
@@ -201,10 +185,10 @@ The modules load in this order:
 | File | Kind | Owns |
 |---|---|---|
 | `src/Config.lua` | pure | the `DEFAULTS` table, `Config.Load(saved)` (fills in missing keys, drops retired keys, migrates by `schemaVersion`), `Config.SetEnabled`, `Config.ParseCommand`, `Config.COMMANDS` |
-| `src/Crit.lua` | pure | the sub-event → crit-position table, `Crit.IsMyCrit(mineMask, band, ...)` (the CLEU tuple; `band` is `bit.band`, passed in so specs can supply one), `Crit.ShouldPlay(now, lastStart)` |
+| `src/Crit.lua` | pure | `Crit.IsCritReport(canRead, unit, event, flag, isHostile)` (one `UNIT_COMBAT` report, §4.1), `Crit.ShouldPlay(now, lastStart, window)` |
 | `src/Sound.lua` | thin glue | the clip constants; `Sound.Play()` (stop the previous handle, `PlaySoundFile` on Dialog, remember the start time) and `Sound.OnCrit(db)` (enabled + throttle) |
 | `src/UI.lua` | glue | the window and its palette. Public: `UI.Toggle()`, `UI.Refresh()` |
-| `src/Init.lua` | glue | events (`ADDON_LOADED`, `PLAYER_LOGIN`, `COMBAT_LOG_EVENT_UNFILTERED`), the slash command, `ns.Print`, the version |
+| `src/Init.lua` | glue | events (`ADDON_LOADED`, `PLAYER_LOGIN`, `UNIT_COMBAT`), the secret-value read check, the slash command, `ns.Print`, the version |
 
 **Rule:** pure modules never touch the WoW API. Time (`now`) and the game API are passed
 in as parameters. Glue files are checked by hand in game. Pure modules are covered by
@@ -221,7 +205,7 @@ DEFAULTS = {
 }
 ```
 
-Schema 2 retires the v0.1.0 keys `volume` and `restore`. `Config.Load` deletes them. No
+Schema 2 retires the keys `volume` and `restore`. `Config.Load` deletes them. No
 `restore` value ever needs applying: every `SetCVar` call the addon made in combat was
 blocked, so it never ran.
 
@@ -232,8 +216,9 @@ Constants (in `Sound.lua`):
 
 ## 7. Roadmap
 
-**Phase 0: in-game checks.** Do these before trusting §4.1 and §4.3. Record the results in
-a table in this file.
+**Phase 0: in-game checks.** Results so far (2026-11-10, client 1.60.1.70888): the addon
+loads; `PlaySoundFile(CLIP_PATH, "Dialog")` plays the mp3; the combat log is blocked, which
+retired checks 4 to 6 (§4.1).
 1. The addon loads with `## Interface: 16001` and is not shown as out of date.
    - DeathRollForever already confirmed on this client that `C_AddOns.GetAddOnMetadata`,
      `BackdropTemplate`, `C_Timer` and `UnitFactionGroup` exist. The others below have not
@@ -242,14 +227,13 @@ a table in this file.
    - If mp3 doesn't play, convert the clip to `.ogg` and update `CLIP_PATH`.
 3. ~~Setting `Sound_DialogVolume` changes how loud the clip is.~~ **Answered: `SetCVar` is
    blocked for addons in combat** (the in-game popup on 2026-11-10). Dropped (§4.3).
-4. The `critical` positions in §4.1 are correct. Test each kind of crit by printing the
-   tuple.
-5. `COMBATLOG_OBJECT_AFFILIATION_MINE` is set in `sourceFlags` for the player, the pet, a
-   guardian and a shaman totem. Test a totem crit (for example Searing Totem) specifically.
-   If it isn't set, switch to the GUID fallback in §4.1.
-6. A fully absorbed crit arrives as `*_MISSED` with `missType == "ABSORB"` and a `critical`
-   field in the position the table gives. `DAMAGE_SHIELD` (Thorns) can crit at all on this
-   client. If it never does, keep it anyway: it costs nothing.
+4. ~~The `critical` positions are correct.~~ Retired: no combat log (§4.1).
+5. ~~`COMBATLOG_OBJECT_AFFILIATION_MINE` covers pets, guardians and totems.~~ Retired: no
+   combat log (§4.1).
+6. ~~Fully absorbed crits and `DAMAGE_SHIELD` crits.~~ Retired: no combat log (§4.1).
+7. A wand crit on a hostile target, and a pet crit on it, play the clip; a crit heal on the
+   player plays it; hits on the player do not. **Confirmed working in play by the owner
+   (2026-11-10).**
 
 **v0.1.0: MVP.** Everything in §4, specs for the pure modules, and a tagged GitHub release.
 
@@ -286,6 +270,6 @@ a table in this file.
 - Add each user-facing change to `CHANGELOG.md` under `## [Unreleased]`.
 - Never tag, push or release unless the owner asks.
 - Tabs for indentation, LF line endings (`.editorconfig`).
-- Anything that needs the game client (sound, the window, faction colours, combat-log
-  fields) can only be checked by a human. Write down what needs checking instead of
+- Anything that needs the game client (sound, the window, faction colours, `UNIT_COMBAT`
+  reports) can only be checked by a human. Write down what needs checking instead of
   claiming it works.

@@ -1,6 +1,20 @@
 local addonName, ns = ...
 
-local MINE = COMBATLOG_OBJECT_AFFILIATION_MINE or 0x1
+-- False for a value the game hides from addons; such a value must not be compared.
+local function CanRead(value)
+	if canaccessvalue then
+		return canaccessvalue(value) == true
+	end
+	if issecretvalue then
+		return issecretvalue(value) == false
+	end
+	return true
+end
+
+local function HostileTarget()
+	local hostile = UnitCanAttack("player", "target")
+	return CanRead(hostile) and hostile == true
+end
 
 local function GetVersion()
 	local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
@@ -44,7 +58,7 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
-frame:SetScript("OnEvent", function(self, event, arg1)
+frame:SetScript("OnEvent", function(self, event, arg1, ...)
 	if event == "ADDON_LOADED" then
 		if arg1 ~= addonName then
 			return
@@ -52,17 +66,18 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 		self:UnregisterEvent("ADDON_LOADED")
 		ForeverOwenDB = ns.Config.Load(ForeverOwenDB)
 		ns.db = ForeverOwenDB
-		self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		self:RegisterUnitEvent("UNIT_COMBAT", "target", "player")
 	elseif event == "PLAYER_LOGIN" then
 		if not ns.db then
 			return
 		end
 		ns.Print(ns.version .. " loaded. Type /owen.")
-	elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+	elseif event == "UNIT_COMBAT" then
 		if not ns.db then
 			return
 		end
-		if ns.Crit.IsMyCrit(MINE, bit.band, CombatLogGetCurrentEventInfo()) then
+		local combatEvent, flag = ...
+		if ns.Crit.IsCritReport(CanRead, arg1, combatEvent, flag, HostileTarget) then
 			ns.Sound.OnCrit(ns.db)
 		end
 	end
