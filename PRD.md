@@ -19,11 +19,14 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 ## 2. Goals, non-goals, anti-goals
 
 **Goals**
-- Play the clip when **the player or the player's pet** lands a critical:
+- Play the clip when **the player, or anything the player controls** (pet, guardians,
+  totems, temporary summons), lands a critical:
   - melee and ranged auto-attacks
   - physical abilities
-  - damaging spells
-  - heals
+  - damaging spells, including damage over time
+  - heals, including heal over time
+  - thorns and reflect-style damage (`DAMAGE_SHIELD`)
+  - crits that a shield fully absorbs
 - Offer a small window with:
   - a **Play** button to preview the clip
   - a **volume slider**
@@ -67,29 +70,41 @@ The clip is `media/OwenWilson.mp3`, about 0.84 s long (exact length in §6, Cons
 - Listen to `COMBAT_LOG_EVENT_UNFILTERED` and read the event with
   `CombatLogGetCurrentEventInfo()`.
 - An event counts if all of these hold:
-  1. `sourceGUID` is `UnitGUID("player")`, or `UnitGUID("pet")` when that is not `nil`.
-     Read the pet GUID on each event, because pets get summoned and dismissed.
-     - "Pet" means the one controlled pet (hunter pet, warlock demon). Guardians, totems and
-       temporary summons don't count in v1. That was my call; ask the owner before widening it.
-     - Fully absorbed crits (`*_MISSED` with `ABSORB`) and reflect/thorns damage
-       (`DAMAGE_SHIELD`) don't count in v1. Also my call.
+  1. **The source is the player or something the player owns.** The owner decided: **every**
+     unit the player controls counts — the controlled pet, guardians, **totems** (important
+     for shamans) and temporary summons.
+     - Check `sourceFlags` with `bit.band(sourceFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0`.
+       That flag is set on the player and on everything the player owns, and it doesn't need
+       GUID tracking or `SPELL_SUMMON` bookkeeping.
+     - Fallback if Phase 0 shows the flag is missing for some summon type: also accept
+       `sourceGUID == UnitGUID("player")` or `UnitGUID("pet")`, and track GUIDs from the
+       player's `SPELL_SUMMON` events (cleared on `PLAYER_ENTERING_WORLD`).
   2. The sub-event is in the table below.
   3. Its `critical` field is truthy.
+  4. For `*_MISSED` sub-events only: `missType == "ABSORB"`. The owner decided that a crit
+     **fully absorbed** by a shield still counts. Other miss types (dodge, parry, resist and
+     so on) never carry a crit.
 
-| Sub-event | `critical` position (1-based, in the full returned tuple) |
-|---|---|
-| `SWING_DAMAGE` | 18 |
-| `RANGE_DAMAGE`, `SPELL_DAMAGE`, `SPELL_PERIODIC_DAMAGE` | 21 |
-| `SPELL_HEAL`, `SPELL_PERIODIC_HEAL` | 18 |
+| Sub-event | `critical` position (1-based, in the full returned tuple) | Notes |
+|---|---|---|
+| `SWING_DAMAGE` | 18 | |
+| `RANGE_DAMAGE`, `SPELL_DAMAGE`, `SPELL_PERIODIC_DAMAGE` | 21 | |
+| `DAMAGE_SHIELD` (thorns, reflect-style damage) | 21 | Owner decided this counts |
+| `SPELL_HEAL`, `SPELL_PERIODIC_HEAL` | 18 | |
+| `SWING_MISSED` | 15 | `missType` at 12 must be `"ABSORB"` |
+| `RANGE_MISSED`, `SPELL_MISSED`, `SPELL_PERIODIC_MISSED`, `DAMAGE_SHIELD_MISSED` | 18 | `missType` at 15 must be `"ABSORB"` |
 
 These positions follow the retail combat-log layout: 11 base fields, then a 3-field spell
-prefix for SPELL/RANGE events, then the suffix. **They must be confirmed in game first**
-(§7, Phase 0). Put them in one table in `Crit.lua` so a fix touches one place.
+prefix for SPELL/RANGE/DAMAGE_SHIELD events, then the suffix. The MISSED suffix is
+`missType, isOffHand, amountMissed, critical`. **They must be confirmed in game first**
+(§7, Phase 0). Put them in one table in `Crit.lua` (critical position plus an optional
+missType position) so a fix touches one place.
 
 - Order the checks so the cheapest rejection runs first:
   1. the sub-event lookup
-  2. the source GUID
+  2. the source flags (one `bit.band`)
   3. the critical flag
+  4. the missType, for MISSED events only
 
 ### 4.2 Throttle
 
@@ -203,7 +218,7 @@ The modules load in this order:
 | File | Kind | Owns |
 |---|---|---|
 | `src/Config.lua` | pure | the `DEFAULTS` table, `Config.Load(saved)` (fills in missing keys, clamps volume, migrates by `schemaVersion`), `Config.SetVolume`, `Config.SetEnabled` |
-| `src/Crit.lua` | pure | the sub-event → crit-position table, `Crit.IsMyCrit(playerGUID, petGUID, ...)`, `Crit.ShouldPlay(now, lastStart)` |
+| `src/Crit.lua` | pure | the sub-event → crit-position table, `Crit.IsMyCrit(mineMask, band, ...)` (the CLEU tuple; `band` is `bit.band`, passed in so specs can supply one), `Crit.ShouldPlay(now, lastStart)` |
 | `src/Sound.lua` | pure core + thin glue | the borrow/restore logic with injected `getCVar`/`setCVar`/`after`/`db`; glue binds the real `GetCVar`, `SetCVar`, `C_Timer.After`, `PlaySoundFile` and `StopSound` |
 | `src/UI.lua` | glue | the window and its palette. Public: `UI.Toggle()`, `UI.Refresh()` |
 | `src/Init.lua` | glue | events (`ADDON_LOADED`, `PLAYER_LOGIN`, `COMBAT_LOG_EVENT_UNFILTERED`), the slash command, `ns.Print`, the version |
@@ -245,7 +260,12 @@ a table in this file.
    Restoring it ~1 s later doesn't cut off the end of the clip.
 4. The `critical` positions in §4.1 are correct. Test each kind of crit by printing the
    tuple.
-5. Pet crits show the pet's GUID as `sourceGUID`.
+5. `COMBATLOG_OBJECT_AFFILIATION_MINE` is set in `sourceFlags` for the player, the pet, a
+   guardian and a shaman totem. Test a totem crit (for example Searing Totem) specifically.
+   If it isn't set, switch to the GUID fallback in §4.1.
+6. A fully absorbed crit arrives as `*_MISSED` with `missType == "ABSORB"` and a `critical`
+   field in the position the table gives. `DAMAGE_SHIELD` (Thorns) can crit at all on this
+   client. If it never does, keep it anyway: it costs nothing.
 
 **v0.1.0: MVP.** Everything in §4, specs for the pure modules, and a tagged GitHub release.
 
