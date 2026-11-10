@@ -1,6 +1,6 @@
 -- ForeverOwen Phase 0 probe (throwaway). Prints raw combat-log fields and checks API assumptions.
 local PREFIX = "|cff33ff99OwenProbe|r "
-local CLIP = "Interface\AddOns\ForeverOwenProbe\OwenWilson.mp3"
+local CLIP = "Interface\\AddOns\\ForeverOwenProbe\\OwenWilson.mp3"
 local CLIP_SECONDS = 1.09
 
 local function out(msg)
@@ -44,21 +44,29 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 frame:SetScript("OnEvent", onCombatLog)
 
+local volRunning = false
+
 local function probeVol(arg)
 	local v = tonumber(arg)
 	if not v or v < 0 or v > 1 then
 		out("usage: /owenprobe vol <0-1>")
 		return
 	end
+	if volRunning then
+		out("test already running")
+		return
+	end
+	volRunning = true
 	local oldVol, oldEnable = GetCVar("Sound_DialogVolume"), GetCVar("Sound_EnableDialog")
 	out("current Sound_DialogVolume=" .. tostring(oldVol) .. " Sound_EnableDialog=" .. tostring(oldEnable))
-	SetCVar("Sound_DialogVolume", v)
-	SetCVar("Sound_EnableDialog", 1)
+	SetCVar("Sound_DialogVolume", tostring(v))
+	SetCVar("Sound_EnableDialog", "1")
 	local willPlay, handle = PlaySoundFile(CLIP, "Dialog")
 	out("willPlay=" .. tostring(willPlay) .. " handle=" .. tostring(handle))
 	C_Timer.After(CLIP_SECONDS, function()
 		SetCVar("Sound_DialogVolume", oldVol)
 		SetCVar("Sound_EnableDialog", oldEnable)
+		volRunning = false
 		out("restored Sound_DialogVolume=" .. tostring(GetCVar("Sound_DialogVolume"))
 			.. " Sound_EnableDialog=" .. tostring(GetCVar("Sound_EnableDialog")))
 	end)
