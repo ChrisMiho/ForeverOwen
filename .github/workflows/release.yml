@@ -19,6 +19,6 @@ jobs:
         with:
           fetch-depth: 0 # full history, for the changelog
 
-      - uses: BigWigsMods/packager@v2.6.1 # keep in step with scripts/build.sh
+      - uses: BigWigsMods/packager@v2.7.0 # keep in step with scripts/build.sh
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
