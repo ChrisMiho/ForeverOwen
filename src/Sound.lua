@@ -1,0 +1,53 @@
+local _, ns = ...
+
+local Sound = {}
+ns.Sound = Sound
+
+Sound.CLIP_PATH = "Interface\\AddOns\\ForeverOwen\\media\\OwenWilson.mp3"
+Sound.CLIP_SECONDS = 0.84
+Sound.RESTORE_PAD = 0.25
+Sound.CHANNEL = "Dialog"
+
+local VOLUME_CVAR = "Sound_DialogVolume"
+local ENABLE_CVAR = "Sound_EnableDialog"
+
+-- api = { getCVar = fn(name) -> string|nil, setCVar = fn(name, value), after = fn(seconds, cb) }
+-- db.restore is the only record of an active borrow: it is saved, so a crash can be undone on login.
+function Sound.NewBorrower(api)
+	local borrower = {}
+	local gen = 0
+
+	function borrower.Restore(_, db)
+		local saved = db.restore
+		if not saved then
+			return
+		end
+		if saved.dialogVolume ~= nil then
+			api.setCVar(VOLUME_CVAR, saved.dialogVolume)
+		end
+		if saved.enableDialog ~= nil then
+			api.setCVar(ENABLE_CVAR, saved.enableDialog)
+		end
+		db.restore = nil
+	end
+
+	function borrower.Begin(_, db, volume)
+		if db.restore == nil then
+			db.restore = {
+				dialogVolume = api.getCVar(VOLUME_CVAR),
+				enableDialog = api.getCVar(ENABLE_CVAR),
+			}
+		end
+		api.setCVar(VOLUME_CVAR, tostring(volume))
+		api.setCVar(ENABLE_CVAR, "1")
+		gen = gen + 1
+		local mine = gen
+		api.after(Sound.CLIP_SECONDS + Sound.RESTORE_PAD, function()
+			if mine == gen then
+				borrower:Restore(db)
+			end
+		end)
+	end
+
+	return borrower
+end
