@@ -73,9 +73,7 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
 		end
 		ns.Print(ns.version .. " loaded. Type /owen.")
 	elseif event == "UNIT_COMBAT" then
-		if not ns.db then
-			return
-		end
+		-- Registered only after ns.db is set (ADDON_LOADED above).
 		local combatEvent, flag = ...
 		if ns.Crit.IsCritReport(CanRead, arg1, combatEvent, flag, HostileTarget) then
 			ns.Sound.OnCrit(ns.db)

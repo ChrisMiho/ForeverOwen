@@ -1,19 +1,26 @@
 name: Release
 
-# Runs when a version tag such as v0.1.0 is pushed. The packager stamps the
-# version into the .toc, builds the zip (leaving out the files ignored in
-# .pkgmeta) and attaches it to a GitHub release.
+# Runs when a version tag such as v0.1.0 is pushed. Lint and tests run first
+# (the CI workflow); only if they pass does the packager stamp the version into
+# the .toc, build the zip (leaving out the files ignored in .pkgmeta) and attach
+# it to a GitHub release.
 on:
   push:
     tags:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  lint-and-test:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: lint-and-test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:

@@ -16,6 +16,35 @@ describe("Config", function()
 		assert.are.same(point, db.point)
 	end)
 
+	it("returns the saved table itself, keeping unknown keys", function()
+		local saved = { enabled = true, future = "kept" }
+		local db = Config.Load(saved)
+		assert.are.equal(saved, db)
+		assert.are.equal("kept", db.future)
+	end)
+
+	it("enabled defaults to true when missing or not a boolean", function()
+		assert.is_true(Config.Load({}).enabled)
+		assert.is_true(Config.Load({ enabled = "false" }).enabled)
+		assert.is_true(Config.Load({ enabled = 0 }).enabled)
+	end)
+
+	it("drops a saved position that is not a table", function()
+		assert.is_nil(Config.Load({ point = "junk" }).point)
+	end)
+
+	it("drops a saved position with a missing or wrong field", function()
+		local bad = {
+			{ relativePoint = "CENTER", x = 1, y = 2 },
+			{ point = "CENTER", relativePoint = 5, x = 1, y = 2 },
+			{ point = "CENTER", relativePoint = "CENTER", x = "1", y = 2 },
+			{ point = "CENTER", relativePoint = "CENTER", x = 1 },
+		}
+		for _, point in ipairs(bad) do
+			assert.is_nil(Config.Load({ point = point }).point)
+		end
+	end)
+
 	it("drops retired volume and restore keys", function()
 		local db = Config.Load({ volume = 0.4, restore = { dialogVolume = "0.7" } })
 		assert.is_nil(db.volume)
@@ -36,6 +65,7 @@ describe("Config", function()
 		assert.are.equal("off", Config.ParseCommand("Off"))
 		assert.are.equal("help", Config.ParseCommand("volume 5"))
 		assert.are.equal("help", Config.ParseCommand("help"))
+		assert.are.equal("help", Config.ParseCommand("on now"))
 	end)
 
 	it("COMMANDS lists the three commands in order", function()

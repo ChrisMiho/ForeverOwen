@@ -1,13 +1,17 @@
 local Crit = LoadAddonFile("src/Crit.lua").Crit
 
-local SECRET = setmetatable({}, {
-	__eq = function()
-		error("compared a secret value")
-	end,
-})
+local function canRead()
+	return true
+end
 
-local function canRead(v)
-	return v ~= SECRET and true or false
+-- A canRead that hides one value. The hidden value is a real "CRITICAL" or "WOUND",
+-- so if IsCritReport skipped the check and compared it anyway, the report would count
+-- and the test would fail. (A table with an erroring __eq would not catch that: Lua 5.1
+-- never calls __eq when comparing a table with a string.)
+local function hiding(hidden)
+	return function(v)
+		return v ~= hidden
+	end
 end
 
 local function check(unit, event, flag, hostile)
@@ -53,8 +57,36 @@ describe("Crit.IsCritReport", function()
 		assert.is_false(check("target", "WOUND", nil, true))
 	end)
 
-	it("hidden flag is not compared", function()
-		assert.is_false(check("target", "WOUND", SECRET, true))
+	it("hidden flag does not count", function()
+		local yes = function()
+			return true
+		end
+		assert.is_false(Crit.IsCritReport(hiding("CRITICAL"), "target", "WOUND", "CRITICAL", yes))
+		assert.is_false(Crit.IsCritReport(hiding("CRITICAL"), "player", "HEAL", "CRITICAL", yes))
+	end)
+
+	it("lowercase flag does not count", function()
+		assert.is_false(check("target", "WOUND", "critical", true))
+	end)
+
+	it("hostility must be exactly true", function()
+		assert.is_false(check("target", "WOUND", "CRITICAL", 1))
+		assert.is_false(check("target", "WOUND", "CRITICAL", nil))
+	end)
+
+	it("does not ask about the target for a crit heal on me", function()
+		local asked = false
+		Crit.IsCritReport(canRead, "player", "HEAL", "CRITICAL", function()
+			asked = true
+			return true
+		end)
+		assert.is_false(asked)
+	end)
+
+	it("other units do not count", function()
+		assert.is_false(check(nil, "WOUND", "CRITICAL", true))
+		assert.is_false(check("focus", "WOUND", "CRITICAL", true))
+		assert.is_false(check("targettarget", "WOUND", "CRITICAL", true))
 	end)
 
 	it("does not ask about the target for an ordinary hit", function()
@@ -66,8 +98,12 @@ describe("Crit.IsCritReport", function()
 		assert.is_false(asked)
 	end)
 
-	it("hidden event is not compared", function()
-		assert.is_false(check("target", SECRET, "CRITICAL", true))
+	it("hidden event does not count", function()
+		local yes = function()
+			return true
+		end
+		assert.is_false(Crit.IsCritReport(hiding("WOUND"), "target", "WOUND", "CRITICAL", yes))
+		assert.is_false(Crit.IsCritReport(hiding("HEAL"), "player", "HEAL", "CRITICAL", yes))
 	end)
 end)
 
@@ -82,5 +118,9 @@ describe("Crit.ShouldPlay", function()
 
 	it("plays once the window has passed", function()
 		assert.is_true(Crit.ShouldPlay(10.84, 10, 0.84))
+	end)
+
+	it("blocks just before the window ends", function()
+		assert.is_false(Crit.ShouldPlay(10.8399, 10, 0.84))
 	end)
 end)

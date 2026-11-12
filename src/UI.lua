@@ -64,9 +64,8 @@ end
 
 local function ApplyPosition(frame)
 	frame:ClearAllPoints()
-	local p = ns.db.point
-	if type(p) == "table" and type(p.point) == "string" and type(p.relativePoint) == "string"
-		and type(p.x) == "number" and type(p.y) == "number" then
+	local p = ns.db.point -- checked by Config.Load; SavePosition only writes valid ones
+	if p then
 		frame:SetPoint(p.point, UIParent, p.relativePoint, p.x, p.y)
 	else
 		frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)

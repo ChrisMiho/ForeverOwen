@@ -11,11 +11,22 @@ Config.COMMANDS = {
 	{ "/owen off", "turn it off" },
 }
 
+-- A saved window position the UI can pass straight to SetPoint.
+local function IsValidPoint(p)
+	return type(p) == "table"
+		and type(p.point) == "string"
+		and type(p.relativePoint) == "string"
+		and type(p.x) == "number"
+		and type(p.y) == "number"
+end
+
 function Config.Load(saved)
 	local db = type(saved) == "table" and saved or {}
 	db.schemaVersion = Config.DEFAULTS.schemaVersion
-	db.enabled = db.enabled ~= false
-	if type(db.point) ~= "table" then
+	if type(db.enabled) ~= "boolean" then
+		db.enabled = Config.DEFAULTS.enabled
+	end
+	if not IsValidPoint(db.point) then
 		db.point = nil
 	end
 	-- Retired in schema 2 (PRD 6). The old restore snapshot is dropped, never applied.

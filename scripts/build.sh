@@ -82,8 +82,11 @@ if [ "$install" -eq 1 ]; then
 		echo "Refusing to install: $target is a link. Remove the link first." >&2
 		exit 1
 	fi
+	# Copy beside the old install first, so a failed copy leaves the old one in place.
+	rm -rf "$target.new"
+	cp -r "$pkg" "$target.new"
 	rm -rf "$target"
-	cp -r "$pkg" "$target"
+	mv "$target.new" "$target"
 	echo "Install: $target"
 	echo "In game, type /reload to load the new build."
 fi

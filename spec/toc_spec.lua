@@ -1,5 +1,5 @@
 -- Smoke tests for the package layout: the .toc the game reads and the
--- sound file it plays. They need no addon code, so they pass from day one.
+-- sound file it plays.
 
 local TOC = "ForeverOwen.toc"
 
@@ -64,11 +64,25 @@ describe("ForeverOwen.toc", function()
 				missing[#missing + 1] = path
 			end
 		end
-		if #missing > 0 then
-			pending("src/ files not written yet: " .. table.concat(missing, ", "))
-			return
-		end
 		assert.are.same({}, missing)
+	end)
+
+	it("lists every src/ file", function()
+		local isWindows = package.config:sub(1, 1) == "\\"
+		local pipe = assert(io.popen(isWindows and "dir /b src\\*.lua" or "ls src"))
+		local listed = {}
+		for _, path in ipairs(tocFiles(toc)) do
+			listed[path] = true
+		end
+		local unlisted = {}
+		for name in pipe:lines() do
+			name = name:match("^%s*(.-)%s*$")
+			if name:match("%.lua$") and not listed["src\\" .. name] then
+				unlisted[#unlisted + 1] = name
+			end
+		end
+		pipe:close()
+		assert.are.same({}, unlisted)
 	end)
 end)
 
