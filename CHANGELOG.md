@@ -6,6 +6,14 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-11
+
+Maintenance release. Nothing changes in game.
+
+### Changed
+- Releases are only published after lint and tests pass.
+- Stronger tests and stricter checks on saved settings behind the scenes.
+
 ## [0.1.0] - 2026-11-10
 
 First release, for WoW Forever (client 1.60.1, Interface 16001).
