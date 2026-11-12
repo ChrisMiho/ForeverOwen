@@ -105,7 +105,7 @@ every push and pull request.
    git push origin main --follow-tags
    ```
 
-3. The Release workflow builds the zip and attaches it to a GitHub release.
+3. The Release workflow runs lint and tests, then builds the zip and attaches it to a GitHub release.
 
 ## Credits
 
